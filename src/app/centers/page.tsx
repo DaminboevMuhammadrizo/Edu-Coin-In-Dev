@@ -1,4 +1,5 @@
 'use client'
+
 import Navbar from '@/components/Navbar'
 import Sidebar from '@/components/SideBar'
 import axios from 'axios'
@@ -7,34 +8,28 @@ import React, { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 interface CenterInter {
-    id: number,
-    name: string,
-    phone: string,
-    status: string,
+    id: number
+    name: string
+    phone: string
+    status: string
     description: string
+    subdomain?: string
+    logo?: string
 }
 
 function Center() {
-    let [token, setToken] = useState<string | null>(null)
+    const [token, setToken] = useState<string | null>(null)
     const [centerss, setCenters] = useState<CenterInter[]>([])
     const [filcenterss, setFilCenters] = useState<CenterInter[]>([])
     const [showModal, setShowModal] = useState(false)
     const [showUpdate, setShowUpdate] = useState(false)
     const [editId, setEditId] = useState<number | null>(null)
-    const [oneCenter, setOneCenter] = useState([])
-
-    useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const t = localStorage.getItem('accessToken')
-            setToken(t)
-        }
-    }, [])
 
     const [formData, setFormData] = useState({
         name: '',
         logo: null as File | null,
         phone: '',
-        status: 'PRIVATE',
+        status: 'PRIVATE' as 'PRIVATE' | 'CENTER',
         description: '',
         subdomain: ''
     })
@@ -43,170 +38,170 @@ function Center() {
         name: '',
         logo: null as File | null,
         phone: '',
-        status: 'PRIVATE',
+        status: 'PRIVATE' as 'PRIVATE' | 'CENTER',
         description: '',
         subdomain: ''
     })
 
-    const [alert, setAlert] = useState<{ show: boolean, type: 'success' | 'error', message: string }>({
+    const [alert, setAlert] = useState<{ show: boolean; type: 'success' | 'error'; message: string }>({
         show: false,
         type: 'success',
         message: ''
     })
 
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const t = localStorage.getItem('accessToken')
+            setToken(t)
+        }
+    }, [])
 
     useEffect(() => {
         if (!token) return
 
-        axios.get('https://educoin-b2b-dev.educoinapp.uz/api/v1/centers/all', {
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
-        })
-            .then(res => { setCenters(res.data.data), setFilCenters(res.data.data) })
+        axios
+            .get('https://educoin-b2b-dev.educoinapp.uz/api/v1/centers/all', {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+            .then(res => {
+                setCenters(res.data.data)
+                setFilCenters(res.data.data)
+            })
             .catch(err => console.error('Xatolik:', err))
     }, [token])
 
-    const handleChange = (e: any) => {
+    const fetchCenters = async () => {
+        if (!token) return
+        try {
+            const res = await axios.get('https://educoin-b2b-dev.educoinapp.uz/api/v1/centers/all', {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+            setCenters(res.data.data)
+            setFilCenters(res.data.data)
+        } catch (err) {
+            console.error(err)
+        }
+    }
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value })
     }
 
-    const handleUpdateChange = (e: any) => {
+    const handleUpdateChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         setUpdateData({ ...updateData, [e.target.name]: e.target.value })
     }
 
-    async function handleEdit(editId: number) {
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            setFormData(prev => ({ ...prev, logo: e.target.files![0] }))
+        }
+    }
+
+    const handleFileChange1 = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            setUpdateData(prev => ({ ...prev, logo: e.target.files![0] }))
+        }
+    }
+
+    const handleEdit = async (id: number) => {
+        setEditId(id)
         setShowUpdate(true)
-        setEditId(editId)
-
         try {
-            if (!token) return
-
-            const res = await axios.get(
-                `https://educoin-b2b-dev.educoinapp.uz/api/v1/centers/single/${editId}`,
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                }
-            )
-
+            const res = await axios.get(`https://educoin-b2b-dev.educoinapp.uz/api/v1/centers/single/${id}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            })
             const center = res.data.data
-            
-
             setUpdateData({
                 name: center.name || '',
-                logo: center.logo || '',
+                logo: null,
                 phone: center.phone || '',
                 status: center.status || 'PRIVATE',
                 description: center.description || '',
                 subdomain: center.subdomain || ''
             })
-
         } catch (error: any) {
-            console.log(error.message)
+            console.error(error)
+            setAlert({ show: true, type: 'error', message: 'Maʼlumot yuklashda xato' })
         }
     }
 
-
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            setFormData(prev => ({
-                ...prev,
-                logo: e.target.files![0]
-            }))
-        }
-    }
-
-
-
-    const handleFileChange1 = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            setUpdateData(prev => ({
-                ...prev,
-                logo: e.target.files![0]
-            }))
-        }
-    }
-
-
-
-
-    async function handleSubmit() {
+    const handleSubmit = async () => {
+        if (!token) return
         try {
-            if (!token) return
-
             const fd = new FormData()
             fd.append('name', formData.name)
             fd.append('phone', formData.phone)
             fd.append('status', formData.status)
             fd.append('description', formData.description)
             fd.append('subdomain', formData.subdomain)
+            if (formData.logo) fd.append('logo', formData.logo)
 
-            if (formData.logo) {
-                fd.append('logo', formData.logo)
-            }
-
-            await axios.post(
-                'https://educoin-b2b-dev.educoinapp.uz/api/v1/centers/',
-                fd,
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        'Content-Type': 'multipart/form-data'
-                    }
+            await axios.post('https://educoin-b2b-dev.educoinapp.uz/api/v1/centers/', fd, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'multipart/form-data'
                 }
-            )
+            })
 
             setAlert({ show: true, type: 'success', message: 'Center muvaffaqiyatli qo‘shildi!' })
             setShowModal(false)
-            setTimeout(() => window.location.reload(), 1000)
-
+            setFormData({ name: '', logo: null, phone: '', status: 'PRIVATE', description: '', subdomain: '' })
+            fetchCenters()
         } catch (err: any) {
             setAlert({
                 show: true,
                 type: 'error',
                 message: err.response?.data?.message || 'Xatolik yuz berdi'
             })
-            console.error(err)
         }
     }
 
-    const handleUpdate = (editId: number) => {
-        if (!editId) return
+    const handleUpdate = async () => {
+        if (!editId || !token) return
 
-        if (!token) return
+        try {
+            const fd = new FormData()
+            fd.append('name', updateData.name)
+            fd.append('phone', updateData.phone)
+            fd.append('status', updateData.status)
+            fd.append('description', updateData.description)
+            fd.append('subdomain', updateData.subdomain)
+            if (updateData.logo) fd.append('logo', updateData.logo)
 
-        axios.put(
-
-            `https://educoin-b2b-dev.educoinapp.uz/api/v1/centers/${editId}`,
-            updateData,
-            {
+            await axios.put(`https://educoin-b2b-dev.educoinapp.uz/api/v1/centers/${editId}`, fd, {
                 headers: {
                     Authorization: `Bearer ${token}`,
-                },
-            }
-        ).then(() => {
+                    'Content-Type': 'multipart/form-data'
+                }
+            })
+
+            setAlert({ show: true, type: 'success', message: 'Center muvaffaqiyatli yangilandi!' })
             setShowUpdate(false)
-            window.location.reload()
-        })
+            setUpdateData({ name: '', logo: null, phone: '', status: 'PRIVATE', description: '', subdomain: '' })
+            fetchCenters()
+        } catch (err: any) {
+            setAlert({
+                show: true,
+                type: 'error',
+                message: err.response?.data?.message || 'Yangilashda xato'
+            })
+        }
     }
 
-    async function delete_one(id: number) {
-        try {
-            if (!token) return
+    // DELETE
+    const delete_one = async (id: number) => {
+        if (!token) return
+        if (!confirm('Haqiqatan ham o‘chirmoqchimisiz?')) return
 
-            await axios.delete(
-                `https://educoin-b2b-dev.educoinapp.uz/api/v1/centers/${id}`,
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                }
-            )
-            setCenters(prev => prev.filter(item => item.id !== id))
-            setTimeout(() => window.location.reload(), 1000)
-        } catch { }
+        try {
+            await axios.delete(`https://educoin-b2b-dev.educoinapp.uz/api/v1/centers/${id}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+            fetchCenters()
+            setAlert({ show: true, type: 'success', message: 'Center o‘chirildi' })
+        } catch (err) {
+            setAlert({ show: true, type: 'error', message: 'O‘chirishda xato' })
+        }
     }
 
     return (
@@ -215,6 +210,7 @@ function Center() {
             <div className='flex'>
                 <Sidebar />
                 <section className='p-10 w-full'>
+                    {/* Sarlavha */}
                     <div className='flex justify-between items-center p-5 rounded-2xl shadow-sm'>
                         <div className='flex gap-3 items-center'>
                             <LocateFixed size={40} className='text-[#9900dd]' />
@@ -229,6 +225,7 @@ function Center() {
                         </button>
                     </div>
 
+                    {/* Jadval */}
                     <div className="mt-8 bg-white shadow-md rounded-2xl overflow-hidden">
                         <div className="overflow-x-auto">
                             <table className="min-w-full text-left border-collapse">
@@ -242,7 +239,6 @@ function Center() {
                                         <th className="py-4 px-6 text-center whitespace-nowrap">Amallar</th>
                                     </tr>
                                 </thead>
-
                                 <tbody>
                                     {filcenterss.map((center, index) => (
                                         <tr key={center.id} className="hover:bg-[#faf7ff] transition-all duration-150 border-t border-gray-100">
@@ -266,7 +262,6 @@ function Center() {
                                         </tr>
                                     ))}
                                 </tbody>
-
                             </table>
                         </div>
                     </div>
@@ -274,14 +269,7 @@ function Center() {
                     <AnimatePresence>
                         {showModal && (
                             <>
-                                <motion.div
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    exit={{ opacity: 0 }}
-                                    className='fixed inset-0 bg-black/40 z-40'
-                                    onClick={() => setShowModal(false)}
-                                />
-
+                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className='fixed inset-0 bg-black/40 z-40' onClick={() => setShowModal(false)} />
                                 <motion.div
                                     initial={{ x: '100%' }}
                                     animate={{ x: 0 }}
@@ -291,14 +279,11 @@ function Center() {
                                 >
                                     <div className='flex justify-between items-center mb-6'>
                                         <h2 className='text-2xl font-semibold text-[#9900dd]'>Center Qo‘shish</h2>
-                                        <button onClick={() => setShowModal(false)} className='p-2 rounded-xl hover:bg-gray-100'>
-                                            <X />
-                                        </button>
+                                        <button onClick={() => setShowModal(false)} className='p-2 rounded-xl hover:bg-gray-100'><X /></button>
                                     </div>
-
                                     <div className='flex flex-col gap-4'>
                                         <input name='name' value={formData.name} onChange={handleChange} placeholder='Markaz nomi' className='border p-3 rounded-xl focus:outline-[#9900dd]' />
-                                        <input type='file' name='logo' onChange={handleFileChange} placeholder='Logo URL' className='border p-3 rounded-xl focus:outline-[#9900dd]' />
+                                        <input type='file' onChange={handleFileChange} className='border p-3 rounded-xl focus:outline-[#9900dd]' />
                                         <input name='phone' value={formData.phone} onChange={handleChange} placeholder='Telefon raqam' className='border p-3 rounded-xl focus:outline-[#9900dd]' />
                                         <select name='status' value={formData.status} onChange={handleChange} className='border p-3 rounded-xl focus:outline-[#9900dd]'>
                                             <option value='PRIVATE'>PRIVATE</option>
@@ -306,11 +291,7 @@ function Center() {
                                         </select>
                                         <textarea name='description' value={formData.description} onChange={handleChange} placeholder='Izoh...' className='border p-3 rounded-xl focus:outline-[#9900dd]' />
                                         <input name='subdomain' value={formData.subdomain} onChange={handleChange} placeholder='Subdomain' className='border p-3 rounded-xl focus:outline-[#9900dd]' />
-
-                                        <button
-                                            onClick={handleSubmit}
-                                            className='bg-[#9900dd] text-white py-3 rounded-xl mt-3 font-semibold hover:bg-[#7c00b6] transition-all'
-                                        >
+                                        <button onClick={handleSubmit} className='bg-[#9900dd] text-white py-3 rounded-xl mt-3 font-semibold hover:bg-[#7c00b6] transition-all'>
                                             Saqlash
                                         </button>
                                     </div>
@@ -320,13 +301,7 @@ function Center() {
 
                         {showUpdate && (
                             <>
-                                <motion.div
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    exit={{ opacity: 0 }}
-                                    className='fixed inset-0 bg-black/40 z-40'
-                                    onClick={() => setShowUpdate(false)}
-                                />
+                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className='fixed inset-0 bg-black/40 z-40' onClick={() => setShowUpdate(false)} />
                                 <motion.div
                                     initial={{ x: '100%' }}
                                     animate={{ x: 0 }}
@@ -336,13 +311,11 @@ function Center() {
                                 >
                                     <div className='flex justify-between items-center mb-6'>
                                         <h2 className='text-2xl font-semibold text-[#9900dd]'>Center Tahrirlash</h2>
-                                        <button onClick={() => setShowUpdate(false)} className='p-2 rounded-xl hover:bg-gray-100'>
-                                            <X />
-                                        </button>
+                                        <button onClick={() => setShowUpdate(false)} className='p-2 rounded-xl hover:bg-gray-100'><X /></button>
                                     </div>
                                     <div className='flex flex-col gap-4'>
                                         <input name='name' value={updateData.name} onChange={handleUpdateChange} placeholder='Markaz nomi' className='border p-3 rounded-xl focus:outline-[#9900dd]' />
-                                        <input type='file' name='logo' onChange={handleFileChange1} placeholder='Logo URL' className='border p-3 rounded-xl focus:outline-[#9900dd]' />
+                                        <input type='file' onChange={handleFileChange1} className='border p-3 rounded-xl focus:outline-[#9900dd]' />
                                         <input name='phone' value={updateData.phone} onChange={handleUpdateChange} placeholder='Telefon raqam' className='border p-3 rounded-xl focus:outline-[#9900dd]' />
                                         <select name='status' value={updateData.status} onChange={handleUpdateChange} className='border p-3 rounded-xl focus:outline-[#9900dd]'>
                                             <option value='PRIVATE'>PRIVATE</option>
@@ -350,7 +323,7 @@ function Center() {
                                         </select>
                                         <textarea name='description' value={updateData.description} onChange={handleUpdateChange} placeholder='Izoh...' className='border p-3 rounded-xl focus:outline-[#9900dd]' />
                                         <input name='subdomain' value={updateData.subdomain} onChange={handleUpdateChange} placeholder='Subdomain' className='border p-3 rounded-xl focus:outline-[#9900dd]' />
-                                        <button onClick={() => handleUpdate(editId!)} className='bg-[#9900dd] text-white py-3 rounded-xl mt-3 font-semibold hover:bg-[#7c00b6] transition-all'>
+                                        <button onClick={handleUpdate} className='bg-[#9900dd] text-white py-3 rounded-xl mt-3 font-semibold hover:bg-[#7c00b6] transition-all'>
                                             Yangilash
                                         </button>
                                     </div>
@@ -359,21 +332,20 @@ function Center() {
                         )}
                     </AnimatePresence>
 
+                    {/* Alert */}
                     <AnimatePresence>
                         {alert.show && (
                             <motion.div
                                 initial={{ opacity: 0, scale: 0.7 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.7 }}
-                                transition={{ duration: 0.25 }}
-                                className={`fixed top-10 right-10 z-[999] p-6 rounded-2xl shadow-2xl min-w-[260px] text-lg font-semibold
-                                    ${alert.type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}
-                                `}
+                                className={`fixed top-10 right-10 z-[999] p-6 rounded-2xl shadow-2xl min-w-[260px] text-lg font-semibold ${alert.type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+                                    }`}
                             >
                                 {alert.message}
                                 <button
-                                    onClick={() => setAlert(prev => ({ ...prev, show: false }))}
-                                    className='mt-3 bg-white text-black px-4 py-2 rounded-lg hover:bg-gray-200'
+                                    onClick={() => setAlert({ ...alert, show: false })}
+                                    className='mt-3 bg-white text-black px-4 py-2 rounded-lg hover:bg-gray-200 block mx-auto'
                                 >
                                     OK
                                 </button>
