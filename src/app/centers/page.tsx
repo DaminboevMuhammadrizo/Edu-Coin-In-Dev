@@ -92,7 +92,7 @@ function Center() {
             )
 
             const center = res.data.data
-            console.log(center)
+            
 
             setUpdateData({
                 name: center.name || '',

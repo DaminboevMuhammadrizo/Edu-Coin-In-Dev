@@ -21,28 +21,29 @@ function Auth() {
     }, [])
 
     async function handleSubmit(e: any) {
-        
+
         e.preventDefault()
         try {
             const res = await axios.post('https://educoin-b2b-dev.educoinapp.uz/api/v1/auth/login', {
                 identifier,
                 password
             })
-          
-            if (res.data?.accessToken && res.data?.role) {
-                 const TOKEN_KEY = 'accessToken'
-                localStorage.setItem(TOKEN_KEY, res.data.accessToken)
+
+            if (res.data?.accessToken && res.data?.role === 'SUPERADMIN') {
+                localStorage.setItem('accessToken', res.data.accessToken)
                 localStorage.setItem('role', res.data.role)
 
+                setSuccess(true)
+                setError(null)
+
+                setTimeout(() => {
+                    navigate.push('/')
+                }, 2000)
+            } else {
+                setError("Bu yerga faqat Super Admin ga ruxsat etilgan")
+                setSuccess(false)
             }
 
-            setSuccess(true)
-            setError(null)
-
-            setTimeout(() => {
-                setSuccess(false)
-                navigate.push('/')
-            }, 2000)
         } catch (err: any) {
             setError(err.message || "Login xato, iltimos qayta urinib ko‘ring.")
             setSuccess(false)

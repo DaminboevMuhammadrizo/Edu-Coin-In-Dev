@@ -29,7 +29,6 @@ interface RolesInter {
 
 function Creator() {
     let [token, setToken] = useState<string | null>(null)
-    console.log(token)
     const [creators, setCreators] = useState<CreatorInter[]>([])
     const [centers, setCenters] = useState<CenterInter[]>([])
     const [showUpdate, setShowUpdate] = useState(false)
